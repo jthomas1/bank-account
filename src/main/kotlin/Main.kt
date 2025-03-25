@@ -1,8 +1,8 @@
 package org.example
 
-import com.github.ajalt.clikt.core.main
-import com.github.ajalt.clikt.core.subcommands
+import org.example.db.AccountRepository
+import org.example.services.AccountService
 
-fun main(args: Array<String>) {
-    CLI().subcommands(NewAccount()).main(args)
+fun main() {
+    REPL(AccountService(AccountRepository()))
 }
