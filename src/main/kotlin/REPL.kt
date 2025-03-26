@@ -17,7 +17,7 @@ fun help() {
         💸 Withdraw <amount> <account number> - Withdraws money from the account
         💹 Balance <account number> - Shows the balance of the account
         👋 Quit - Exits the application
-        ⁉️ Help - Shows this help message
+        ❓ Help - Shows this help message
     """.trimIndent()
     )
 }
