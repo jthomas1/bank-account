@@ -10,48 +10,69 @@ abstract class CommandFactory {
 sealed interface Command
 
 data class NewAccount(
-    val firstName: String,
-    val lastName: String
+    val firstName: String, val lastName: String
 ) : Command {
-    companion object Factory: CommandFactory() {
+    companion object Factory : CommandFactory() {
         override fun withValidatedArgs(args: List<String>): Result<Command> {
             if (args.size != 2) {
                 return Result.failure(CommandParser.MissingArgumentsError(commandName = "NewAccount"))
             }
-            return Result.success(NewAccount(firstName = args[0], lastName = args[1]))
+            val (firstName, lastName) = args
+            return Result.success(NewAccount(firstName = firstName, lastName = lastName))
         }
     }
 }
 
+private fun parseBigDecimal(value: String): Result<BigDecimal> {
+    return  runCatching { BigDecimal(value) }
+}
+
+private fun parseUUID(value: String): Result<UUID> {
+    return runCatching { UUID.fromString(value) }
+}
+
 data class Deposit(val amount: BigDecimal, val accountNumber: UUID) : Command {
-    companion object Factory: CommandFactory() {
+    companion object Factory : CommandFactory() {
         override fun withValidatedArgs(args: List<String>): Result<Command> {
             if (args.size != 2) {
                 return Result.failure(CommandParser.MissingArgumentsError(commandName = "Deposit"))
             }
-            return Result.success(Deposit(amount = BigDecimal(args[0]), accountNumber = UUID.fromString(args[1])))
+            val (amount, accountNumber) = args
+            val decimalAmount = parseBigDecimal(amount).getOrNull()
+                ?: return Result.failure(CommandParser.InvalidArgumentError("Amount", amount))
+            val accountUUID = parseUUID(accountNumber).getOrNull()
+                ?: return Result.failure(CommandParser.InvalidArgumentError("Account number", accountNumber))
+            return Result.success(Deposit(amount = decimalAmount, accountNumber = accountUUID))
         }
     }
 }
 
 data class Withdraw(val amount: BigDecimal, val accountNumber: UUID) : Command {
-    companion object Factory: CommandFactory() {
+    companion object Factory : CommandFactory() {
         override fun withValidatedArgs(args: List<String>): Result<Command> {
             if (args.size != 2) {
                 return Result.failure(CommandParser.MissingArgumentsError(commandName = "Withdraw"))
             }
-            return Result.success(Withdraw(amount = BigDecimal(args[0]), accountNumber = UUID.fromString(args[1])))
+            val (amount, accountNumber) = args
+            val decimalAmount = parseBigDecimal(amount).getOrNull()
+                ?: return Result.failure(CommandParser.InvalidArgumentError("Amount", amount))
+            val accountUUID = parseUUID(accountNumber).getOrNull()
+                ?: return Result.failure(CommandParser.InvalidArgumentError("Account number", accountNumber))
+            return Result.success(Withdraw(amount = decimalAmount, accountNumber = accountUUID))
         }
     }
 }
 
 data class Balance(val accountNumber: UUID) : Command {
-    companion object Factory: CommandFactory() {
+    companion object Factory : CommandFactory() {
         override fun withValidatedArgs(args: List<String>): Result<Command> {
             if (args.size != 1) {
                 return Result.failure(CommandParser.MissingArgumentsError(commandName = "Balance"))
             }
-            return Result.success(Balance(accountNumber = UUID.fromString(args[0])))
+            val accountNumber = args.first()
+            val accountUUID = parseUUID(accountNumber).getOrNull()
+                ?: return Result.failure(CommandParser.InvalidArgumentError("Account number", accountNumber))
+            return Result.success(Balance(accountNumber = accountUUID))
         }
     }
 }
@@ -60,19 +81,20 @@ data object Quit : Command
 data object Help : Command
 
 object CommandParser {
-    data class MissingArgumentsError(val commandName: String) :
-        Error(
-            "Incorrect number of arguments for command '$commandName'"
-        )
+    data class MissingArgumentsError(val commandName: String) : Error(
+        "Incorrect number of arguments for command '$commandName'"
+    )
 
-    data class UnknownCommandError(val commandString: String) :
-        Error(
-            "Unknown command '$commandString'"
-        )
+    data class InvalidArgumentError(val argumentName: String, val invalidValue: String) :
+        Error("Invalid value: $invalidValue for argument: $argumentName")
+
+    data class UnknownCommandError(val commandString: String) : Error(
+        "Unknown command '$commandString'"
+    )
 
     fun fromString(str: String): Result<Command> {
         val parts = str.split(" ")
-        val name = parts[0]
+        val name = parts.first()
         val args = parts.drop(1)
         return when (name.lowercase()) {
             "newaccount" -> NewAccount.withValidatedArgs(args)
