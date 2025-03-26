@@ -42,14 +42,20 @@ class REPL(private val service: AccountService) {
                     }
 
                     is Deposit -> {
-                        service.deposit(command.accountNumber, amount = command.amount)
-                        tellerSay("Deposited £${command.amount} to account ${command.accountNumber}")
+                        service.deposit(command.accountNumber, amount = command.amount).fold(
+                            onSuccess = { tellerSay("Deposited £${command.amount} to account ${command.accountNumber}") },
+                            onFailure = { tellerSay(it.message ?: "") }
+                        )
+
                         prompt()
                     }
 
                     is Withdraw -> {
-                        service.withdraw(command.accountNumber, amount = command.amount)
-                        tellerSay("Withdrawn £${command.amount} from account ${command.accountNumber}")
+                        service.withdraw(command.accountNumber, amount = command.amount).fold(
+                            onSuccess = { tellerSay("Withdrawn £${command.amount} from account ${command.accountNumber}") },
+                            onFailure = { tellerSay(it.message ?: "") }
+                        )
+
                         prompt()
                     }
 
@@ -72,12 +78,8 @@ class REPL(private val service: AccountService) {
                     }
 
                     is Quit -> {
-                        println("Bye!")
+                        tellerSay("Bye!")
                         exitProcess(0)
-                    }
-
-                    else -> {
-                        prompt("I'm sorry, we don't offer that service. Can I help you with something else?")
                     }
                 }
             },
