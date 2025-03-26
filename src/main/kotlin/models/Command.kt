@@ -62,19 +62,13 @@ data object Help : Command
 object CommandParser {
     data class MissingArgumentsError(val commandName: String) :
         Error(
-            "Not enough arguments for command '$commandName'"
+            "Incorrect number of arguments for command '$commandName'"
         )
 
     data class UnknownCommandError(val commandString: String) :
         Error(
             "Unknown command '$commandString'"
         )
-
-    private fun parseArgs(args: List<String>, numExpected: Int, name: String)  {
-        if (args.size != numExpected) {
-            throw MissingArgumentsError(commandName = name)
-        }
-    }
 
     fun fromString(str: String): Result<Command> {
         val parts = str.split(" ")
