@@ -31,51 +31,59 @@ class REPL(private val service: AccountService) {
     private fun prompt(message: String? = "How can I help you?") {
         println("\n$bankTeller $message")
         print("> ")
-        when (val command = CommandParser.fromString(readln())) {
-            is NewAccount -> {
-                val account = service.create(command.firstName, command.lastName)
-                println("$bankTeller Account created: ${account.id}")
-                prompt()
-            }
+        CommandParser.fromString(readln()).fold<Unit, Command>(
+            onSuccess = { command ->
+                when (command) {
+                    is NewAccount -> {
+                        val account = service.create(command.firstName, command.lastName)
+                        println("$bankTeller Account created: ${account.id}")
+                        prompt()
+                    }
 
-            is Deposit -> {
-                service.deposit(command.accountNumber, amount = command.amount)
-                println("$bankTeller Deposited ${command.amount} to account ${command.accountNumber}")
-                prompt()
-            }
+                    is Deposit -> {
+                        service.deposit(command.accountNumber, amount = command.amount)
+                        println("$bankTeller Deposited ${command.amount} to account ${command.accountNumber}")
+                        prompt()
+                    }
 
-            is Withdraw -> {
-                service.withdraw(command.accountNumber, amount = command.amount)
-                println("$bankTeller Withdrawn ${command.amount} from account ${command.accountNumber}")
-                prompt()
-            }
+                    is Withdraw -> {
+                        service.withdraw(command.accountNumber, amount = command.amount)
+                        println("$bankTeller Withdrawn ${command.amount} from account ${command.accountNumber}")
+                        prompt()
+                    }
 
-            is Balance -> {
-                service.getAccount(command.accountNumber)?.let {
-                    println("$bankTeller Balance: ${it.balance}")
-                    prompt()
-                } ?: {
-                    println(
-                        "Account ${command.accountNumber} not found. Please create an account before trying to access it."
-                    )
-                    prompt()
+                    is Balance -> {
+                        service.getAccount(command.accountNumber)?.let {
+                            println("$bankTeller Balance: ${it.balance}")
+                            prompt()
+                        } ?: {
+                            println(
+                                "Account ${command.accountNumber} not found. Please create an account before trying to access it."
+                            )
+                            prompt()
+                        }
+
+                    }
+
+                    is Help -> {
+                        help()
+                        prompt()
+                    }
+
+                    is Quit -> {
+                        println("Bye!")
+                        exitProcess(0)
+                    }
+
+                    else -> {
+                        prompt("I'm sorry, we don't offer that service. Can I help you with something else?")
+                    }
                 }
-
-            }
-
-            is Help -> {
-                help()
+            },
+            onFailure = { error ->
+                println(error.message)
                 prompt()
             }
-
-            is Quit -> {
-                println("Bye!")
-                exitProcess(0)
-            }
-
-            else -> {
-                prompt("I'm sorry, we don't offer that service. Can I help you with something else?")
-            }
-        }
+        )
     }
 }
